@@ -195,10 +195,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className={`flex flex-col items-start text-left p-3.5 rounded-xl border transition-all duration-200 ${
+                className={`flex flex-col items-start text-left p-3.5 rounded-xl border transition-all duration-300 ease-out ${
                   isSelected
-                    ? "bg-indigo-950/60 border-indigo-500 text-white shadow-glow-brand ring-1 ring-indigo-500"
-                    : "glass-panel hover:bg-surface-100 hover:border-white/20 text-gray-300"
+                    ? "bg-indigo-950/60 border-indigo-500 text-white shadow-glow-brand ring-1 ring-indigo-500 scale-[1.02]"
+                    : "glass-panel hover:scale-[1.02] hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 text-gray-300"
                 }`}
               >
                 <div className="p-2 rounded-lg bg-surface-50 border border-white/5 mb-2.5">
@@ -216,7 +216,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Form Container */}
         <div className="lg:col-span-7">
-          <form onSubmit={handleSubmit} className="glass-panel p-6 rounded-2xl border border-white/10 space-y-5">
+          <form onSubmit={handleSubmit} className="glass-panel p-6 rounded-2xl border border-white/10 space-y-5 animate-fadeIn">
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <h3 className="font-semibold text-white text-base flex items-center gap-2">
                 <Send className="w-4 h-4 text-indigo-400" />
