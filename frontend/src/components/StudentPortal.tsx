@@ -19,7 +19,8 @@ import {
   Mail, 
   Hash, 
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  BookOpen
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { submitRequest, SubmitResponse } from "@/lib/api";
@@ -85,6 +86,16 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     defaultName: "Vikram Das",
     defaultId: "EE2024-303",
     defaultEmail: "vikram.d@campus.edu",
+  },
+  {
+    id: "library_late_access",
+    name: "Library Late Access",
+    icon: <BookOpen className="w-4 h-4 text-violet-400" />,
+    badge: "After-Hours Study",
+    template: "Requesting late-night library access for Central Library (2nd Floor, Reading Hall) from 10 PM to 6 AM on weekdays for the next two weeks. Preparing for end-semester examinations and need a quiet study environment after regular hours.",
+    defaultName: "Ananya Mehta",
+    defaultId: "IT2023-215",
+    defaultEmail: "ananya.m@campus.edu",
   }
 ];
 
@@ -187,7 +198,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
           <span className="text-xs text-gray-500">Click any preset to auto-populate template</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {PRESET_CATEGORIES.map((preset) => {
             const isSelected = selectedPreset === preset.id;
             return (
