@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Campus Ops AI | Intelligent Operations & Notion Sync",
-  description: "AI-Powered Campus Operations, Student Request Ingestion, Automated Notion Sync & Audit System",
+  title: "CampusOps AI — Intelligent Campus Operations & Notion Automation",
+  description:
+    "An end-to-end AI-powered campus operations platform that parses unstructured student requests, syncs structured data to Notion databases, and auto-executes approved tickets with a background engine. Built for the Notion Track hackathon.",
 };
 
 export default function RootLayout({
