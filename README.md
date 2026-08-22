@@ -15,6 +15,16 @@ CampusOps AI accepts free-form text requests from students (hostel leave, lab ac
 
 ---
 
+  ## 📸 Preview
+
+  ![Student Submission Portal](docs/screenshots/home.png)
+  ![Live Operations Dashboard](docs/screenshots/audit.png)
+  ![Live Notion Dashboard](docs/screenshots/database.png)
+  ![Live Gatepass](docs/screenshots/gatepass.png)
+
+  ---
+
+
 ## ✨ Key Features
 
 | Feature | Description |
@@ -131,7 +141,7 @@ campus-ops-ai/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/campus-ops-ai.git
+git clone https://github.com/harshsingh2275/campus-ops-ai.git
 cd campus-ops-ai
 ```
 
@@ -347,7 +357,7 @@ The parser uses weighted keyword matching across **6 categories** plus a fallbac
 
 ## 📄 License
 
-This project was built for the Notion hackathon. Feel free to fork and adapt.
+This project was built for the Notion hackathon and is licensed under the [MIT License](LICENSE). Feel free to fork and adapt.
 
 ---
 
