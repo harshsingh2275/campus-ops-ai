@@ -468,6 +468,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
           )}
         </div>
       </div>
+
+      {/* Footer */}
+      <div className="pt-6 border-t border-white/5 text-center">
+        <p className="text-sm text-gray-500">
+          Built with <span className="text-gray-400">Next.js</span>, <span className="text-gray-400">FastAPI</span>, and <span className="text-gray-400">Notion</span> for the Hackathon
+        </p>
+      </div>
     </div>
   );
 };
