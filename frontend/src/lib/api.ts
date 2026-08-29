@@ -70,8 +70,15 @@ export interface HealthResponse {
   };
 }
 
+// ── Auth error shape returned by the /api/submit proxy ──────────────────────
+export interface SubmitAuthError extends Error {
+  code: "UNAUTHENTICATED" | "SESSION_EXPIRED";
+}
+
 export async function submitRequest(payload: StudentRequestInput): Promise<SubmitResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/submit`, {
+  // Call the Next.js server-side proxy which reads the HTTP-only cookie and
+  // forwards the request to FastAPI with the correct Authorization header.
+  const res = await fetch("/api/submit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -81,7 +88,21 @@ export async function submitRequest(payload: StudentRequestInput): Promise<Submi
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail?.message || `Submission failed with status ${res.status}`);
+
+    // Surface auth errors distinctly so the UI can redirect to /login
+    if (res.status === 401) {
+      const authErr = new Error(
+        errorData.error ?? "Authentication required. Please log in."
+      ) as SubmitAuthError;
+      authErr.code = errorData.code ?? "UNAUTHENTICATED";
+      throw authErr;
+    }
+
+    throw new Error(
+      errorData.detail?.message ??
+      errorData.error ??
+      `Submission failed with status ${res.status}`
+    );
   }
 
   return res.json();

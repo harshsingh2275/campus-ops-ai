@@ -2,12 +2,14 @@ import time
 import uuid
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from ..config import settings
 from ..models.request import StudentRequestInput, SubmitResponse
 from ..models.run_log import RunLogEventType, RunLogStatus
+from ..models.user import User
 from ..services.parser import RequestParser
 from ..services.notion_service import notion_service, log_submission_event
+from ..dependencies.auth import get_current_user
 
 logger = logging.getLogger("campus_ops.routes.submit")
 router = APIRouter(prefix="/api", tags=["Student Requests"])
@@ -24,7 +26,10 @@ MAX_SAVED_REQUESTS = 200
     summary="Submit and parse unstructured student request",
     description="Accepts raw unstructured student requests, parses them into structured domain fields, and pushes a rich formatted page to the Notion Requests database while logging to the Notion Run Log."
 )
-async def submit_student_request(payload: StudentRequestInput):
+async def submit_student_request(
+    payload: StudentRequestInput,
+    current_user: User = Depends(get_current_user),
+):
     start_time = time.time()
     request_id = f"req_{uuid.uuid4().hex[:8]}"
     logger.info(f"Received new student request [{request_id}] (len: {len(payload.raw_text)} chars)")

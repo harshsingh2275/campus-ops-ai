@@ -23,7 +23,7 @@ import {
   BookOpen
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { submitRequest, SubmitResponse } from "@/lib/api";
+import { submitRequest, SubmitResponse, SubmitAuthError } from "@/lib/api";
 
 interface PresetCategory {
   id: string;
@@ -112,6 +112,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAuthError, setIsAuthError] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitResponse | null>(null);
 
   const applyPreset = (preset: PresetCategory) => {
@@ -131,6 +132,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
     setEmail("");
     setSubmitResult(null);
     setErrorMessage(null);
+    setIsAuthError(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +144,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
 
     setIsSubmitting(true);
     setErrorMessage(null);
+    setIsAuthError(false);
 
     try {
       const response = await submitRequest({
@@ -164,8 +167,17 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
         });
       } catch {}
 
-    } catch (err: any) {
-      setErrorMessage(err.message || "An unexpected error occurred while communicating with the server.");
+    } catch (err: unknown) {
+      // Distinguish auth errors from generic errors
+      const authErr = err as SubmitAuthError;
+      if (authErr?.code === "UNAUTHENTICATED" || authErr?.code === "SESSION_EXPIRED") {
+        setIsAuthError(true);
+        setErrorMessage(authErr.message);
+      } else {
+        setErrorMessage(
+          (err as Error)?.message || "An unexpected error occurred while communicating with the server."
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -316,10 +328,29 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
 
             {/* Error Display */}
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold">Submission Failed:</span> {errorMessage}
+              <div className={`p-3.5 rounded-xl border text-xs flex items-start space-x-2 ${
+                isAuthError
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                  : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+              }`}>
+                <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${isAuthError ? "text-amber-400" : "text-rose-400"}`} />
+                <div className="flex-1">
+                  {isAuthError ? (
+                    <>
+                      <span className="font-semibold block mb-1">Authentication Required</span>
+                      <span>{errorMessage}</span>
+                      <a
+                        href="/login"
+                        className="inline-flex items-center gap-1 mt-2 text-amber-300 underline underline-offset-2 hover:text-amber-200 transition-colors font-semibold"
+                      >
+                        Sign in to submit requests →
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">Submission Failed:</span> {errorMessage}
+                    </>
+                  )}
                 </div>
               </div>
             )}
