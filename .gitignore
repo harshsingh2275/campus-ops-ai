@@ -10,4 +10,9 @@ backend/.pytest_cache/
 # Next.js
 frontend/node_modules/
 frontend/.next/
+
+# Ignore generated gatepass files
 backend/gatepasses/*.txt
+
+#Database 
+*.db
