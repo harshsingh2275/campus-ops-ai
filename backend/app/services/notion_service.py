@@ -428,6 +428,156 @@ class NotionService:
             logger.error(f"Failed querying Notion requests by email: {exc}", exc_info=True)
             return []
 
+    def query_all_requests(
+        self,
+        category: Optional[str] = None,
+        priority: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[SubmitResponse]:
+        """
+        Query the Notion Requests database for all requests across the campus (Admin view).
+        Does NOT filter by email.
+        """
+        if not settings.is_notion_configured or not self.client:
+            return []
+
+        try:
+            db_id = settings.NOTION_REQUESTS_DATABASE_ID
+            data_source_id = db_id
+            try:
+                db_info = self.client.databases.retrieve(database_id=db_id)
+                data_sources = db_info.get("data_sources", [])
+                if data_sources and isinstance(data_sources, list) and "id" in data_sources[0]:
+                    data_source_id = data_sources[0]["id"]
+            except Exception as e:
+                logger.warning(f"Could not retrieve database info, using database_id as fallback: {e}")
+
+            # Query all records without email filter
+            response = self.client.data_sources.query(
+                data_source_id=data_source_id
+            )
+            results = response.get("results", [])
+            logger.info(f"Admin query for all campus requests returned {len(results)} records.")
+
+            responses: List[SubmitResponse] = []
+            for page in results:
+                props = page.get("properties", {})
+                page_id = page.get("id", "")
+                page_url = page.get("url", f"https://notion.so/{page_id.replace('-', '')}")
+
+                title_list = props.get("Title", {}).get("title", [])
+                title = "".join([t.get("plain_text", "") for t in title_list]) or "Request"
+
+                student_name_list = props.get("Student Name", {}).get("rich_text", [])
+                student_name = "".join([t.get("plain_text", "") for t in student_name_list]) or "Student"
+
+                student_id_list = props.get("Student ID", {}).get("rich_text", [])
+                student_id = "".join([t.get("plain_text", "") for t in student_id_list]) or None
+
+                student_email_prop = props.get("Student Email", {})
+                if student_email_prop.get("type") == "email" or "email" in student_email_prop:
+                    student_email = student_email_prop.get("email")
+                else:
+                    email_list = student_email_prop.get("rich_text", [])
+                    student_email = "".join([t.get("plain_text", "") for t in email_list]) or None
+
+                category_obj = props.get("Category", {}).get("select") or {}
+                req_category = category_obj.get("name", "General Inquiry")
+
+                priority_obj = props.get("Priority", {}).get("select") or {}
+                req_priority = priority_obj.get("name", "Medium")
+
+                status_obj = props.get("Status", {}).get("select") or props.get("Status", {}).get("status") or {}
+                req_status = status_obj.get("name", "Pending")
+
+                summary_list = props.get("AI Summary", {}).get("rich_text", [])
+                req_summary = "".join([t.get("plain_text", "") for t in summary_list]) or title
+
+                risk_flag = props.get("Risk Flag", {}).get("checkbox", False)
+
+                staff_notes_list = props.get("Staff Notes", {}).get("rich_text", [])
+                staff_notes = "".join([t.get("plain_text", "") for t in staff_notes_list]) or None
+
+                created_time_str = page.get("created_time")
+                created_at = datetime.now(timezone.utc)
+                if created_time_str:
+                    try:
+                        created_at = datetime.fromisoformat(created_time_str.replace("Z", "+00:00"))
+                    except Exception:
+                        pass
+
+                # Apply optional in-memory filters
+                if category and category != "All" and req_category.lower() != category.lower():
+                    continue
+                if priority and priority != "All" and req_priority.lower() != priority.lower():
+                    continue
+                if search:
+                    s = search.lower()
+                    if not (
+                        s in title.lower()
+                        or s in student_name.lower()
+                        or (student_id and s in student_id.lower())
+                        or (student_email and s in student_email.lower())
+                        or s in req_summary.lower()
+                    ):
+                        continue
+
+                parsed_req = ParsedStudentRequest(
+                    title=title,
+                    student_name=student_name,
+                    student_id=student_id,
+                    email=student_email,
+                    category=req_category,
+                    priority=req_priority,
+                    status=req_status,
+                    summary=req_summary,
+                    urgency="Urgent" if risk_flag else "Normal",
+                    staff_notes=staff_notes,
+                    raw_text=req_summary,
+                    created_at=created_at,
+                )
+
+                submit_resp = SubmitResponse(
+                    success=True,
+                    message="Fetched from Notion Requests Database (Admin)",
+                    request_id=f"notion_{page_id.replace('-', '')[:8]}",
+                    parsed_data=parsed_req,
+                    notion_page_id=page_id,
+                    notion_page_url=page_url,
+                    mode="live",
+                    timestamp=created_at
+                )
+                responses.append(submit_resp)
+
+            return responses[:limit]
+
+        except Exception as exc:
+            logger.error(f"Failed querying all Notion requests for admin: {exc}", exc_info=True)
+            return []
+
+    def update_page_status(self, page_id: str, status_name: str = "Approved") -> Dict[str, Any]:
+        """
+        Update the Status property of a Notion page.
+        """
+        if not settings.is_notion_configured or not self.client:
+            return {"page_id": page_id, "status": status_name, "mode": "simulated"}
+
+        try:
+            res = self.client.pages.update(
+                page_id=page_id,
+                properties={
+                    "Status": {
+                        "select": {"name": status_name}
+                    }
+                }
+            )
+            logger.info(f"Updated Notion page '{page_id}' Status to '{status_name}'")
+            return res
+        except Exception as e:
+            logger.warning(f"Could not update Notion page status for '{page_id}': {e}")
+            raise e
+
 
 # Global singleton instance
 notion_service = NotionService()

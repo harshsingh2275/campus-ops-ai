@@ -98,3 +98,27 @@ def get_current_user(
 
     logger.debug("Authenticated user id=%s email=%s", user.id, user.email)
     return user
+
+
+def require_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Dependency that decodes the JWT and verifies the user has the 'admin' role.
+
+    Raises
+    ------
+    403 Forbidden
+        If the authenticated user does not have the 'admin' role.
+    """
+    if current_user.role != "admin":
+        logger.warning(
+            "Forbidden admin access attempt by user id=%s (%s) with role '%s'",
+            current_user.id,
+            current_user.email,
+            current_user.role,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required to access this resource.",
+        )
+    return current_user

@@ -29,6 +29,7 @@ from ..schemas.auth import (
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
+    UpdateRoleRequest,
     UserPublic,
 )
 from ..services.auth_service import (
@@ -61,6 +62,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> RegisterRe
 
     - Rejects duplicate emails with ``409 Conflict``.
     - Hashes the password with Argon2id before storage.
+    - Sets role to 'student' by default.
     - Returns the created user's public profile (no password fields).
     """
     # ── Duplicate check ────────────────────────────────────────────────────
@@ -76,12 +78,13 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> RegisterRe
         email=body.email,          # normalised to lowercase by ORM validator
         name=body.name,
         hashed_password=hash_password(body.password),
+        role="student",
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    logger.info("New user registered: id=%s email=%s", user.id, user.email)
+    logger.info("New user registered: id=%s email=%s role=%s", user.id, user.email, user.role)
 
     return RegisterResponse(
         message="Account created successfully.",
@@ -99,7 +102,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> RegisterRe
     summary="Login and receive a JWT access token",
     description=(
         "Validates email/password credentials. "
-        "Returns a signed JWT access token on success. "
+        "Returns a signed JWT access token containing user role on success. "
         "Returns 401 for any invalid credential combination (intentionally vague)."
     ),
 )
@@ -131,13 +134,17 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
             detail="This account has been deactivated.",
         )
 
-    # ── Issue JWT ──────────────────────────────────────────────────────────
+    # ── Issue JWT with role in payload ─────────────────────────────────────
     token, expires_in = create_access_token(
         subject=user.id,
-        extra_claims={"email": user.email, "name": user.name},
+        extra_claims={
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+        },
     )
 
-    logger.info("User logged in: id=%s email=%s", user.id, user.email)
+    logger.info("User logged in: id=%s email=%s role=%s", user.id, user.email, user.role)
 
     return TokenResponse(
         access_token=token,
@@ -145,3 +152,34 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
         expires_in=expires_in,
         user=UserPublic.model_validate(user),
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/set-role
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/set-role",
+    response_model=UserPublic,
+    summary="Manually upgrade or change a user's role",
+    description=(
+        "Updates the role ('admin', 'student', etc.) for an existing user in the SQLite DB."
+    ),
+)
+def set_role(body: UpdateRoleRequest, db: Session = Depends(get_db)) -> UserPublic:
+    """Manually assign a new role to an existing user."""
+    user = db.query(User).filter(User.email == body.email.lower()).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with email '{body.email}' not found.",
+        )
+
+    target_role = body.role.strip().lower()
+    user.role = target_role
+    db.commit()
+    db.refresh(user)
+
+    logger.info("Updated role for user id=%s (%s) to '%s'", user.id, user.email, user.role)
+
+    return UserPublic.model_validate(user)

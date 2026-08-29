@@ -79,8 +79,18 @@ def create_db_tables() -> None:
     # Import all model modules here so their classes are registered on Base
     # before create_all() is invoked.
     from app.models import user  # noqa: F401  — side-effect import
+    from sqlalchemy import text, inspect
 
     Base.metadata.create_all(bind=engine)
+
+    # ── Auto-migrate missing columns for SQLite ────────────────────────────
+    inspector = inspect(engine)
+    if "users" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("users")]
+        if "role" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'student' NOT NULL"))
+                conn.commit()
 
 
 # ---------------------------------------------------------------------------

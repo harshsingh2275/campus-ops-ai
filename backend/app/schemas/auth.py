@@ -49,6 +49,7 @@ class UserPublic(BaseModel):
     id: int
     email: str
     name: str
+    role: str = "student"
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -68,3 +69,10 @@ class RegisterResponse(BaseModel):
 
     message: str = "Account created successfully."
     user: UserPublic
+
+
+class UpdateRoleRequest(BaseModel):
+    """Payload to upgrade or change a user's role."""
+
+    email: EmailStr = Field(..., description="Target user's email address.")
+    role: str = Field(default="admin", description="New role to assign ('admin', 'student', etc.).")

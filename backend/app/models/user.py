@@ -54,7 +54,13 @@ class User(Base):
         doc="Bcrypt hash of the user's password. Never store plaintext here.",
     )
 
-    # ── Account State ──────────────────────────────────────────────────────
+    # ── Account State & Authorization ──────────────────────────────────────
+    role: str = Column(
+        String(50),
+        default="student",
+        nullable=False,
+        doc="Role assigned for RBAC ('student', 'admin', etc.). Defaults to 'student'.",
+    )
     is_active: bool = Column(
         Boolean,
         default=True,
@@ -89,5 +95,5 @@ class User(Base):
     def __repr__(self) -> str:
         return (
             f"<User id={self.id!r} email={self.email!r} "
-            f"name={self.name!r} is_active={self.is_active!r}>"
+            f"name={self.name!r} role={self.role!r} is_active={self.is_active!r}>"
         )

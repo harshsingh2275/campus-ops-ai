@@ -29,7 +29,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import create_db_tables
-from .routes import submit_router, health_router, auth_router
+from .routes import submit_router, health_router, auth_router, admin_router
 from .models.run_log import RunLogEventType, RunLogStatus
 from .services.notion_service import log_submission_event
 from .services.engine import execution_engine
@@ -122,6 +122,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(submit_router)
 app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 @app.get("/", tags=["Root"])
