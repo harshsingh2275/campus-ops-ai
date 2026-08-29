@@ -1,22 +1,24 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Bot, 
-  Layers, 
   Activity, 
   Send, 
   ExternalLink, 
-  CheckCircle2, 
-  AlertCircle,
-  Sparkles,
-  Database
+  Database,
+  User as UserIcon,
+  LogOut,
+  ShieldCheck
 } from "lucide-react";
 import { HealthResponse } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavbarProps {
-  activeTab: "portal" | "dashboard";
-  setActiveTab: (tab: "portal" | "dashboard") => void;
+  activeTab?: "portal" | "dashboard";
+  setActiveTab?: (tab: "portal" | "dashboard") => void;
   health: HealthResponse | null;
   healthError: boolean;
 }
@@ -27,12 +29,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   health,
   healthError,
 }) => {
+  const router = useRouter();
+  const { user, role, isAdmin, logoutUser } = useAuth();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    router.push("/login");
+  };
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 glass-panel backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo / Title */}
-          <div className="flex items-center space-x-3">
+          <Link href={isAdmin ? "/operations" : "/student-portal"} className="flex items-center space-x-3">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[1px] shadow-glow-brand">
               <div className="w-full h-full bg-surface-50 rounded-xl flex items-center justify-center">
                 <Bot className="w-5 h-5 text-indigo-400" />
@@ -55,39 +65,41 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Automated Ingestion & Notion Sync Engine
               </p>
             </div>
-          </div>
+          </Link>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center bg-surface-50/80 p-1 rounded-xl border border-white/10 shadow-inner">
-            <button
-              onClick={() => setActiveTab("portal")}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "portal"
-                  ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-              }`}
-            >
-              <Send className="w-4 h-4" />
-              <span>Student Portal</span>
-            </button>
+          {/* Navigation Tabs (if activeTab controller provided) */}
+          {setActiveTab && (
+            <div className="flex items-center bg-surface-50/80 p-1 rounded-xl border border-white/10 shadow-inner">
+              <button
+                onClick={() => setActiveTab("portal")}
+                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === "portal"
+                    ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                    : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                <span>Submit Request</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "dashboard"
-                  ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-              }`}
-            >
-              <Activity className="w-4 h-4" />
-              <span>My Requests</span>
-            </button>
-          </div>
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === "dashboard"
+                    ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
+                    : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                <span>My Requests</span>
+              </button>
+            </div>
+          )}
 
-          {/* Right Status / Links */}
+          {/* Right Status / User / Links */}
           <div className="flex items-center space-x-3">
             {/* Backend Health Badge */}
-            <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-surface-100 border border-white/10 text-xs">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-surface-100 border border-white/10 text-xs">
               <div className="flex items-center space-x-1.5">
                 {!healthError && health ? (
                   <>
@@ -117,12 +129,43 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
+            {/* User Profile & Role Tag */}
+            {user && (
+              <div className="flex items-center space-x-2 px-2.5 py-1 rounded-xl bg-surface-50 border border-white/10 text-xs">
+                <UserIcon className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-gray-200 font-medium hidden sm:inline max-w-[120px] truncate">
+                  {user.name}
+                </span>
+                <span
+                  className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                    isAdmin
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                      : "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                  }`}
+                >
+                  {role || "student"}
+                </span>
+              </div>
+            )}
+
+            {/* Logout Button */}
+            {user && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-2 rounded-xl bg-surface-50 hover:bg-rose-500/20 hover:text-rose-300 text-gray-400 border border-white/10 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Swagger Docs Link */}
             <a
               href="http://localhost:8000/docs"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 transition-colors border border-white/10"
+              className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 transition-colors border border-white/10"
               title="Open FastAPI Swagger Docs"
             >
               <span>API Docs</span>

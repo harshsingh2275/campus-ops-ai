@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { apiLogin } from "@/lib/auth";
+import { apiLogin, decodeJwtPayload, UserPublic } from "@/lib/auth";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -28,9 +28,15 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await apiLogin(email, password);
+    const tokenClaims = decodeJwtPayload(data.access_token);
+
+    const userWithRole: UserPublic = {
+      ...data.user,
+      role: (tokenClaims?.role as string) || data.user.role || "student",
+    };
 
     const response = NextResponse.json(
-      { user: data.user },
+      { user: userWithRole, tokenPayload: tokenClaims },
       { status: 200 }
     );
 

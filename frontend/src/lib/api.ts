@@ -164,3 +164,37 @@ export async function fetchRequests(params?: {
   }
   return res.json();
 }
+
+export async function fetchAdminRequests(params?: {
+  category?: string;
+  priority?: string;
+  search?: string;
+  limit?: number;
+}): Promise<SubmitResponse[]> {
+  const query = new URLSearchParams();
+  if (params?.category && params.category !== "All") query.append("category", params.category);
+  if (params?.priority && params.priority !== "All") query.append("priority", params.priority);
+  if (params?.search) query.append("search", params.search);
+  if (params?.limit) query.append("limit", params.limit.toString());
+
+  const queryString = query.toString();
+  const url = queryString ? `/api/admin/requests?${queryString}` : "/api/admin/requests";
+
+  const res = await fetch(url, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch admin requests: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function approveAdminRequest(notionPageId: string): Promise<SubmitResponse> {
+  const res = await fetch(`/api/admin/requests/${notionPageId}/approve`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to approve request: ${res.statusText}`);
+  }
+  return res.json();
+}

@@ -8,9 +8,11 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn, Loader2, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { loginUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,9 +42,15 @@ export default function LoginPage() {
         return;
       }
 
+      if (data.user) {
+        loginUser(data.user);
+      }
+
       setSuccess(true);
-      // Short delay so the success state is visible before redirect
-      setTimeout(() => router.push("/"), 800);
+      
+      // Role-based redirect: admin -> /operations, student -> /student-portal
+      const targetPath = data.user?.role === "admin" ? "/operations" : "/student-portal";
+      setTimeout(() => router.push(targetPath), 800);
     } catch {
       setError("Network error. Make sure the backend is running.");
     } finally {
