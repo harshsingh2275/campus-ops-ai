@@ -80,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Activity className="w-4 h-4" />
-              <span>Operations & Audit</span>
+              <span>My Requests</span>
             </button>
           </div>
 

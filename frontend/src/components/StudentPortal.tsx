@@ -434,7 +434,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
                     onClick={onSuccessNavigate}
                     className="w-full py-2.5 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-medium text-xs flex items-center justify-center space-x-1.5 border border-indigo-500/30 transition-colors"
                   >
-                    <span>View in Live Operations Dashboard</span>
+                    <span>View in My Requests</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 )}
