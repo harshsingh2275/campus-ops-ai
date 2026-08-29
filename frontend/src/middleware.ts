@@ -35,6 +35,26 @@ import { NextRequest, NextResponse } from "next/server";
 // Routes that are always public — no cookie check performed.
 const PUBLIC_PATHS = new Set(["/login", "/register"]);
 
+// Helper to decode JWT payload safely in Edge runtime
+function decodeJwtRole(token: string): string | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -57,12 +77,17 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Token present — allow through.
-  // Note: we intentionally do NOT verify the JWT signature here.
-  // Edge Runtime cannot use Node.js crypto modules required by PyJWT-style
-  // verification. Signature verification happens in the FastAPI backend on
-  // every API call. The cookie's HttpOnly + SameSite=Lax attributes already
-  // prevent forgery from the browser side.
+  // ── Protect Admin Routes (e.g. /operations) ──────────────────────────────
+  if (pathname.startsWith("/operations")) {
+    const role = decodeJwtRole(token);
+    if (role !== "admin") {
+      const studentUrl = req.nextUrl.clone();
+      studentUrl.pathname = "/student-portal";
+      studentUrl.search = "";
+      return NextResponse.redirect(studentUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 
