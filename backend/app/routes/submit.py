@@ -35,9 +35,26 @@ async def submit_student_request(
     logger.info(f"Received new student request [{request_id}] (len: {len(payload.raw_text)} chars)")
 
     try:
-        # Step 1: Parse unstructured text into structured fields
+        # Step 1: Parse unstructured text into structured fields.
+        # The parser extracts category, priority, location, student_id, etc.
+        # from the raw text.  student_name and email are then overwritten
+        # below with the authoritative values from the verified JWT token so
+        # they can never be spoofed by the client.
         parsed_data = RequestParser.parse(payload)
-        logger.info(f"[{request_id}] Parsed Category: '{parsed_data.category}', Priority: '{parsed_data.priority}', Location: '{parsed_data.location}'")
+
+        # ── Override identity fields from the verified JWT user ────────────
+        # current_user is fetched from the DB via the JWT sub claim, so these
+        # values are authoritative — regardless of what the raw text contains.
+        parsed_data.student_name = current_user.name
+        parsed_data.email = current_user.email
+        # ──────────────────────────────────────────────────────────────────
+
+        logger.info(
+            f"[{request_id}] Parsed Category: '{parsed_data.category}', "
+            f"Priority: '{parsed_data.priority}', Location: '{parsed_data.location}' "
+            f"| Authenticated as: {current_user.email}"
+        )
+
 
         # Step 2: Push to Notion Requests Database
         notion_result = notion_service.create_request_page(

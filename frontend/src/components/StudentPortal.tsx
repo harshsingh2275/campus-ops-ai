@@ -15,8 +15,7 @@ import {
   AlertCircle, 
   Clock, 
   MapPin, 
-  User, 
-  Mail, 
+  User,
   Hash, 
   ArrowRight,
   RefreshCw,
@@ -31,9 +30,7 @@ interface PresetCategory {
   icon: React.ReactNode;
   badge: string;
   template: string;
-  defaultName: string;
   defaultId: string;
-  defaultEmail: string;
 }
 
 const PRESET_CATEGORIES: PresetCategory[] = [
@@ -42,10 +39,8 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     name: "Lab Access",
     icon: <FlaskConical className="w-4 h-4 text-indigo-400" />,
     badge: "Robotics & Hardware",
-    template: "Hi team, I need access to the Robotics Lab (Block B, Room 204) this Friday from 4 PM to 8 PM for our IEEE hardware project. My student ID is CS2024-042 and email is alex@campus.edu. Thanks!",
-    defaultName: "Alex Kumar",
+    template: "Hi team, I need access to the Robotics Lab (Block B, Room 204) this Friday from 4 PM to 8 PM for our IEEE hardware project. My student ID is CS2024-042. Thanks!",
     defaultId: "CS2024-042",
-    defaultEmail: "alex@campus.edu",
   },
   {
     id: "hostel_leave",
@@ -53,9 +48,7 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     icon: <Building2 className="w-4 h-4 text-emerald-400" />,
     badge: "Accommodation & Leave",
     template: "Requesting night outstation leave from Hostel Block C (Room 312) from Friday 6pm to Sunday 8pm to attend my sister's wedding in Bangalore. Emergency contact provided.",
-    defaultName: "Priya Sharma",
     defaultId: "EC2023-118",
-    defaultEmail: "priya.s@campus.edu",
   },
   {
     id: "event_venue",
@@ -63,9 +56,7 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     icon: <CalendarDays className="w-4 h-4 text-cyan-400" />,
     badge: "Auditorium & Grounds",
     template: "Urgent request to book the Main Auditorium on 15th September from 10 AM to 3 PM for the Annual Tech Fest Hackathon inauguration and guest lecture series.",
-    defaultName: "Rohan Varma",
     defaultId: "ME2022-094",
-    defaultEmail: "rohan.v@campus.edu",
   },
   {
     id: "budget_approval",
@@ -73,9 +64,7 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     icon: <DollarSign className="w-4 h-4 text-amber-400" />,
     badge: "Clubs & Projects",
     template: "Submitting requisition for reimbursement of ₹14,500 for IoT sensor modules and 3D printing filaments purchased for the Autonomous Rover University Competition. Invoices attached.",
-    defaultName: "Sneha Reddy",
     defaultId: "CS2023-501",
-    defaultEmail: "sneha.r@campus.edu",
   },
   {
     id: "maintenance",
@@ -83,9 +72,7 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     icon: <Wrench className="w-4 h-4 text-rose-400" />,
     badge: "Urgent Facilities",
     template: "URGENT: Water leakage from air conditioning duct in Hostel Block A Room 104. Water is dripping near electrical outlets. Please send emergency maintenance team immediately!",
-    defaultName: "Vikram Das",
     defaultId: "EE2024-303",
-    defaultEmail: "vikram.d@campus.edu",
   },
   {
     id: "library_late_access",
@@ -93,9 +80,7 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     icon: <BookOpen className="w-4 h-4 text-violet-400" />,
     badge: "After-Hours Study",
     template: "Requesting late-night library access for Central Library (2nd Floor, Reading Hall) from 10 PM to 6 AM on weekdays for the next two weeks. Preparing for end-semester examinations and need a quiet study environment after regular hours.",
-    defaultName: "Ananya Mehta",
     defaultId: "IT2023-215",
-    defaultEmail: "ananya.m@campus.edu",
   }
 ];
 
@@ -105,9 +90,7 @@ interface StudentPortalProps {
 
 export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate }) => {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [studentName, setStudentName] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [email, setEmail] = useState("");
   const [rawText, setRawText] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,18 +101,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
   const applyPreset = (preset: PresetCategory) => {
     setSelectedPreset(preset.id);
     setRawText(preset.template);
-    setStudentName(preset.defaultName);
     setStudentId(preset.defaultId);
-    setEmail(preset.defaultEmail);
     setErrorMessage(null);
+    setIsAuthError(false);
   };
 
   const handleReset = () => {
     setSelectedPreset(null);
     setRawText("");
-    setStudentName("");
     setStudentId("");
-    setEmail("");
     setSubmitResult(null);
     setErrorMessage(null);
     setIsAuthError(false);
@@ -149,9 +129,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
     try {
       const response = await submitRequest({
         raw_text: rawText.trim(),
-        student_name: studentName.trim() || undefined,
         student_id: studentId.trim() || undefined,
-        email: email.trim() || undefined,
         source: "web_portal"
       });
 
@@ -245,7 +223,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
                 <Send className="w-4 h-4 text-indigo-400" />
                 <span>Submit Request</span>
               </h3>
-              {(rawText || studentName || studentId || email) && (
+              {(rawText || studentId) && (
                 <button
                   type="button"
                   onClick={handleReset}
@@ -257,22 +235,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
               )}
             </div>
 
-            {/* Student Identity Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5 flex items-center gap-1">
-                  <User className="w-3 h-3 text-indigo-400" />
-                  <span>Student Name</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Alex Kumar"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-sm glass-input"
-                />
-              </div>
-
+            {/* Student Identity — Roll Number only (name/email come from JWT) */}
+            <div className="grid grid-cols-1 gap-3.5">
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1.5 flex items-center gap-1">
                   <Hash className="w-3 h-3 text-cyan-400" />
@@ -286,21 +250,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onSuccessNavigate 
                   className="w-full px-3 py-2 rounded-xl text-sm glass-input"
                 />
               </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5 flex items-center gap-1">
-                  <Mail className="w-3 h-3 text-emerald-400" />
-                  <span>Campus Email</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="student@campus.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-sm glass-input"
-                />
-              </div>
             </div>
+
+            {/* Verified identity notice */}
+            <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Your name and email are taken from your verified account and attached automatically.
+            </p>
 
             {/* Unstructured Request Body */}
             <div>
