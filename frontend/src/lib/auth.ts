@@ -30,7 +30,43 @@ export interface RegisterResponse {
 }
 
 export interface AuthError {
-  detail: string;
+  // FastAPI returns a plain string for most errors, but a Pydantic 422
+  // validation error returns an array of { loc, msg, type } objects.
+  detail: string | Array<{ loc: string[]; msg: string; type: string }> | unknown;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Normalise FastAPI's `detail` field into a human-readable string.
+ *
+ * FastAPI's `detail` can be:
+ *   - A plain string  → used as-is.
+ *   - A Pydantic 422 array  → each item has { loc, msg, type }; we join the
+ *     `msg` values so the user sees e.g. "value is not a valid email address".
+ *   - Anything else  → fall back to the provided fallback string.
+ */
+function normaliseDetail(
+  detail: AuthError["detail"],
+  fallback: string
+): string {
+  if (!detail) return fallback;
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === "object" && item !== null && "msg" in item) {
+          return String((item as { msg: unknown }).msg);
+        }
+        return String(item);
+      })
+      .filter(Boolean);
+    return messages.length > 0 ? messages.join("; ") : fallback;
+  }
+
+  return fallback;
 }
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
@@ -47,7 +83,7 @@ export async function apiLogin(
 
   if (!res.ok) {
     const err: AuthError = await res.json().catch(() => ({ detail: "Login failed." }));
-    throw new Error(err.detail ?? "Login failed.");
+    throw new Error(normaliseDetail(err.detail, "Login failed."));
   }
 
   return res.json() as Promise<TokenResponse>;
@@ -66,7 +102,7 @@ export async function apiRegister(
 
   if (!res.ok) {
     const err: AuthError = await res.json().catch(() => ({ detail: "Registration failed." }));
-    throw new Error(err.detail ?? "Registration failed.");
+    throw new Error(normaliseDetail(err.detail, "Registration failed."));
   }
 
   return res.json() as Promise<RegisterResponse>;

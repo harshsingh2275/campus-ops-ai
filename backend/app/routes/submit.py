@@ -129,15 +129,34 @@ async def submit_student_request(
     "/requests",
     response_model=List[SubmitResponse],
     summary="Get List of Submitted Requests",
-    description="Retrieves submitted requests stream with optional category, priority, or search query filtering."
+    description="Retrieves submitted requests stream from Notion filtered by current user's email."
 )
 async def get_requests(
     category: Optional[str] = Query(None, description="Filter by request category"),
     priority: Optional[str] = Query(None, description="Filter by priority"),
     search: Optional[str] = Query(None, description="Search across title, student, summary"),
-    limit: int = Query(50, ge=1, le=100)
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
 ):
-    results = _processed_requests
+    user_email = current_user.email.strip().lower()
+
+    # 1. Query Notion database filtered by Student Email
+    if settings.is_notion_configured and notion_service.client:
+        notion_results = notion_service.query_requests_by_email(
+            email=user_email,
+            category=category,
+            priority=priority,
+            search=search,
+            limit=limit,
+        )
+        if notion_results:
+            return notion_results
+
+    # 2. Fallback to in-memory store filtered by current user's email
+    results = [
+        r for r in _processed_requests
+        if (r.parsed_data.email and r.parsed_data.email.strip().lower() == user_email)
+    ]
     if category and category != "All":
         results = [r for r in results if r.parsed_data.category.lower() == category.lower()]
     if priority and priority != "All":

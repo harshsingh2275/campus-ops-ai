@@ -147,13 +147,16 @@ export async function fetchRequests(params?: {
   search?: string;
   limit?: number;
 }): Promise<SubmitResponse[]> {
-  const url = new URL(`${API_BASE_URL}/api/requests`);
-  if (params?.category && params.category !== "All") url.searchParams.append("category", params.category);
-  if (params?.priority && params.priority !== "All") url.searchParams.append("priority", params.priority);
-  if (params?.search) url.searchParams.append("search", params.search);
-  if (params?.limit) url.searchParams.append("limit", params.limit.toString());
+  const query = new URLSearchParams();
+  if (params?.category && params.category !== "All") query.append("category", params.category);
+  if (params?.priority && params.priority !== "All") query.append("priority", params.priority);
+  if (params?.search) query.append("search", params.search);
+  if (params?.limit) query.append("limit", params.limit.toString());
 
-  const res = await fetch(url.toString(), {
+  const queryString = query.toString();
+  const url = queryString ? `/api/requests?${queryString}` : "/api/requests";
+
+  const res = await fetch(url, {
     cache: "no-store",
   });
   if (!res.ok) {
